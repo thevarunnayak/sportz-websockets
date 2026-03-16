@@ -3,7 +3,7 @@ import { matches } from '../db/schema.js';
 import {db} from '../db/db.js';
 import { getMatchStatus } from '../utils/match-status.js';
 import { createMatchSchema, listMatchesQuerySchema } from '../validation/matches.js';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 export const matchRouter = Router();
 
@@ -60,3 +60,54 @@ matchRouter.post('/', async (req, res) => {
         res.status(500).json({ error: 'Failed to create match.'});
     }
 })
+
+/**
+ * Update match score
+ */
+matchRouter.post("/:id/score", async (req, res) => {
+  const matchId = Number(req.params.id);
+  const { homeScore, awayScore } = req.body;
+
+  if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+    return res.status(400).json({
+      error: "Invalid score payload. Scores must be integers."
+    });
+  }
+
+  try {
+    const [updatedMatch] = await db
+      .update(matches)
+      .set({
+        homeScore,
+        awayScore
+      })
+      .where(eq(matches.id, matchId))
+      .returning();
+
+    if (!updatedMatch) {
+      return res.status(404).json({
+        error: "Match not found"
+      });
+    }
+
+    /**
+     * Broadcast score update to WebSocket clients
+     */
+    if (res.app.locals.broadcastScoreUpdate) {
+      res.app.locals.broadcastScoreUpdate(matchId, {
+        homeScore,
+        awayScore
+      });
+    }
+
+    return res.json({
+      data: updatedMatch
+    });
+  } catch (error) {
+    console.error("Failed to update score:", error);
+
+    return res.status(500).json({
+      error: "Failed to update score"
+    });
+  }
+});
