@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { matchRouter } from "./routes/matches.js";
 import http from "http";
 import { attachWebSocketServer } from "./ws/server.js";
@@ -8,6 +9,7 @@ import { commentaryRouter } from "./routes/commentary.js";
 const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 
+app.use(cors()); // ⭐ allow cross-origin requests
 app.use(express.json());
 
 const server = http.createServer(app);
