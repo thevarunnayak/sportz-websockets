@@ -1,5 +1,5 @@
 import {WebSocket, WebSocketServer} from 'ws';
-// import {wsArcjet} from "../arcjet.js";
+import {wsArcjet} from "../arcjet.js";
 
 const matchSubscribers = new Map();
 
@@ -89,26 +89,26 @@ export function attachWebSocketServer(server) {
             return;
         }
 
-        // if (wsArcjet) {
-        //     try {
-        //         const decision = await wsArcjet.protect(req);
+        if (wsArcjet) {
+            try {
+                const decision = await wsArcjet.protect(req);
 
-        //         if (decision.isDenied()) {
-        //             if (decision.reason.isRateLimit()) {
-        //                 socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
-        //             } else {
-        //                 socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
-        //             }
-        //             socket.destroy();
-        //             return;
-        //         }
-        //     } catch (e) {
-        //         console.error('WS upgrade protection error', e);
-        //         socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
-        //         socket.destroy();
-        //         return;
-        //     }
-        // }
+                if (decision.isDenied()) {
+                    if (decision.reason.isRateLimit()) {
+                        socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
+                    } else {
+                        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+                    }
+                    socket.destroy();
+                    return;
+                }
+            } catch (e) {
+                console.error('WS upgrade protection error', e);
+                socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+                socket.destroy();
+                return;
+            }
+        }
 
         wss.handleUpgrade(req, socket, head, (ws) => {
             wss.emit('connection', ws, req);
@@ -152,11 +152,9 @@ export function attachWebSocketServer(server) {
         broadcastToAll(wss, { type: 'match_created', data: match });
     }
 
-    // function broadcastCommentary(matchId, comment) {
-    //     broadcastToMatch(matchId, { type: 'commentary', data: comment });
-    // }
+    function broadcastCommentary(matchId, comment) {
+        broadcastToMatch(matchId, { type: 'commentary', data: comment });
+    }
 
-    return { broadcastMatchCreated,
-        //  broadcastCommentary
-         };
+    return { broadcastMatchCreated, broadcastCommentary};
 }
